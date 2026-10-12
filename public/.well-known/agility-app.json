@@ -1,0 +1,36 @@
+{
+	"name": "Jira Issues",
+	"version": "0.1.0",
+	"__sdkVersion": "2.0.0",
+	"description": "Link content to Jira issues, create issues from a content item or page with the context filled in, and see each issue's status, assignee and due date right in the editor. In Jira, every linked issue shows the content it's about and whether it's published.",
+	"documentationLink": "https://github.com/agility/agility-cms-app-jira",
+	"configValues": [
+		{
+			"label": "Jira site",
+			"name": "jiraSite",
+			"type": "string",
+			"description": "The Jira Cloud site this Agility instance works with, e.g. acme.atlassian.net. An Agility admin then authorizes it from the Jira panel on any content item, and every editor connects to this site."
+		}
+	],
+	"capabilities": {
+		"contentItemSidebar": {
+			"description": "The issues linked to this content item, and ways to link or create one."
+		},
+		"pageSidebar": {
+			"description": "The issues linked to this page, and ways to link or create one."
+		},
+		"modals": [
+			{
+				"name": "link-issue",
+				"label": "Link a Jira issue",
+				"description": "Search Jira, or paste a key or link."
+			},
+			{
+				"name": "create-issue",
+				"label": "Create a Jira issue",
+				"description": "Create an issue from this content, already linked."
+			}
+		],
+		"installScreen": false
+	}
+}
