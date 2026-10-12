@@ -9,6 +9,7 @@ import type { AgilityCaller } from "./agility/identity.ts"
 import { createJiraAdapter } from "./providers/jira/adapter.ts"
 import { createMockAdapter } from "./providers/mock/adapter.ts"
 import { createMemoryStore } from "./store/memory.ts"
+import { redisFromEnv } from "./store/redis.ts"
 import type { WorkStore } from "./store/store.ts"
 
 /**
@@ -22,6 +23,18 @@ const env = (name: string) => {
 	return v
 }
 
+/**
+ * This deployment's public origin: APP_URL when set (production), else what Vercel says this deployment is
+ * (previews get their own URL, so OAuth callbacks and icons point at the right deployment).
+ */
+export const appUrl = (): string => {
+	const explicit = process.env.APP_URL
+	if (explicit) return explicit.replace(/\/$/, "")
+	const host = process.env.VERCEL_ENV === "production" ? process.env.VERCEL_PROJECT_PRODUCTION_URL : process.env.VERCEL_URL
+	if (host) return `https://${host}`
+	return env("APP_URL")
+}
+
 export const providerId = (): ProviderId => (process.env.WORK_PROVIDER === "mock" ? "mock" : "jira")
 
 let adapterSingleton: TaskProviderAdapter | undefined
@@ -29,11 +42,20 @@ export const adapter = (): TaskProviderAdapter =>
 	(adapterSingleton ??=
 		providerId() === "mock"
 			? createMockAdapter()
-			: createJiraAdapter({ clientId: env("ATLASSIAN_CLIENT_ID"), clientSecret: env("ATLASSIAN_CLIENT_SECRET"), appUrl: env("APP_URL") }))
+			: createJiraAdapter({ clientId: env("ATLASSIAN_CLIENT_ID"), clientSecret: env("ATLASSIAN_CLIENT_SECRET"), appUrl: appUrl() }))
 
-// One store per process. globalThis keeps it across dev hot reloads. ⏸️ Production store: plan §5.1, decision pending.
+// Redis (Upstash, from the Vercel Marketplace) when the project has its credentials; in memory otherwise, which is only
+// for local development and the mock provider. A real provider in production without Redis is refused rather than
+// left to lose every connection on the next cold start. globalThis keeps the store across dev hot reloads.
 const g = globalThis as unknown as { __workStore?: WorkStore }
-export const store = (): WorkStore => (g.__workStore ??= createMemoryStore())
+export const store = (): WorkStore =>
+	(g.__workStore ??=
+		redisFromEnv() ??
+		(process.env.NODE_ENV === "production" && providerId() !== "mock"
+			? (() => {
+					throw new Error("No store: set KV_REST_API_URL and KV_REST_API_TOKEN (Upstash Redis).")
+				})()
+			: createMemoryStore()))
 
 // --- OAuth state: signed, short-lived, carries who started the connect -------------------------------------
 
@@ -62,7 +84,7 @@ export const readState = (
 	return { instanceGuid: s.g, userId: s.u, name: s.nm ?? "", provider: s.p, purpose: s.k === "admin" ? "admin" : "user", site: s.s }
 }
 
-export const redirectUri = () => `${env("APP_URL").replace(/\/$/, "")}/api/connect/callback`
+export const redirectUri = () => `${appUrl()}/api/connect/callback`
 
 // --- connections and sessions ------------------------------------------------------------------------------
 
