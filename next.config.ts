@@ -1,6 +1,9 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
+	/** Azure App Service runs the self-contained server (`node server.js`) from .next/standalone; see deploy/azure.md. */
+	output: "standalone",
+
 	/** The dev indicator floats over the bottom-left of every iframe, where the panel's own controls are. */
 	devIndicators: false,
 

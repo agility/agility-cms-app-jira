@@ -9,7 +9,7 @@ import type { AgilityCaller } from "./agility/identity.ts"
 import { createJiraAdapter } from "./providers/jira/adapter.ts"
 import { createMockAdapter } from "./providers/mock/adapter.ts"
 import { createMemoryStore } from "./store/memory.ts"
-import { redisFromEnv } from "./store/redis.ts"
+import { tableFromEnv } from "./store/table.ts"
 import type { WorkStore } from "./store/store.ts"
 
 /**
@@ -23,15 +23,11 @@ const env = (name: string) => {
 	return v
 }
 
-/**
- * This deployment's public origin: APP_URL when set (production), else what Vercel says this deployment is
- * (previews get their own URL, so OAuth callbacks and icons point at the right deployment).
- */
+/** This deployment's public origin, for the OAuth callback and the icons Jira shows: APP_URL, else App Service's host. */
 export const appUrl = (): string => {
 	const explicit = process.env.APP_URL
 	if (explicit) return explicit.replace(/\/$/, "")
-	const host = process.env.VERCEL_ENV === "production" ? process.env.VERCEL_PROJECT_PRODUCTION_URL : process.env.VERCEL_URL
-	if (host) return `https://${host}`
+	if (process.env.WEBSITE_HOSTNAME) return `https://${process.env.WEBSITE_HOSTNAME}`
 	return env("APP_URL")
 }
 
@@ -44,16 +40,17 @@ export const adapter = (): TaskProviderAdapter =>
 			? createMockAdapter()
 			: createJiraAdapter({ clientId: env("ATLASSIAN_CLIENT_ID"), clientSecret: env("ATLASSIAN_CLIENT_SECRET"), appUrl: appUrl() }))
 
-// Redis (Upstash, from the Vercel Marketplace) when the project has its credentials; in memory otherwise, which is only
-// for local development and the mock provider. A real provider in production without Redis is refused rather than
-// left to lose every connection on the next cold start. globalThis keeps the store across dev hot reloads.
+// Azure Table Storage when AZURE_TABLE_ACCOUNT is set (resource group agility.apps.jira, reached with the App Service's
+// managed identity); in memory otherwise, which is only for local development and the mock provider. A real provider in
+// production without a store is refused rather than left to lose every connection on restart. globalThis keeps the
+// store across dev hot reloads.
 const g = globalThis as unknown as { __workStore?: WorkStore }
 export const store = (): WorkStore =>
 	(g.__workStore ??=
-		redisFromEnv() ??
+		tableFromEnv() ??
 		(process.env.NODE_ENV === "production" && providerId() !== "mock"
 			? (() => {
-					throw new Error("No store: set KV_REST_API_URL and KV_REST_API_TOKEN (Upstash Redis).")
+					throw new Error("No store: set AZURE_TABLE_ACCOUNT (Azure Table Storage).")
 				})()
 			: createMemoryStore()))
 
