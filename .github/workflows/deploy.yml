@@ -1,0 +1,57 @@
+name: Deploy to Azure
+
+# main → the App Service in resource group agility.apps.jira (see deploy/azure.md). GitHub signs in to Azure with OIDC:
+# a user-assigned managed identity (id-agility-apps-jira-deploy) trusts only runs on refs/heads/main of this repo, and
+# can only deploy to this one web app. No secret is stored in GitHub; the three ids are repository variables.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+      # Next's standalone server doesn't copy static assets or public/; App Service runs `node server.js` from here.
+      - name: Package
+        run: |
+          cp -r public .next/standalone/public
+          cp -r .next/static .next/standalone/.next/static
+          cd .next/standalone && zip -qr ../../deploy.zip .
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: agility-apps-jira
+          package: deploy.zip
+
+      # The Free plan sleeps when idle, so the first request after a deploy can take a while.
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 20); do
+            if curl -fsS https://agility-apps-jira.azurewebsites.net/.well-known/agility-app.json | grep -q '"Jira Issues"'; then echo "up"; exit 0; fi
+            sleep 15
+          done
+          echo "the app didn't answer after the deploy"; exit 1

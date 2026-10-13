@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+/*
+ * This app looks like Jira on purpose (Joel, 2026-10-12: "if it looked kinda like jira that would be cool"): editors
+ * who live in Jira should recognise an issue at a glance. The values are Atlassian Design System colour tokens
+ * (atlassian.design/components/tokens), copied as plain values. No Atlassian or Jira logo is used: those are
+ * trademarks, and the issue-type and priority icons are our own drawings in the same idiom.
+ *
+ * Unlike the other Agility apps, which are greyscale so they don't compete with the host, status here carries
+ * Jira's own colour language: grey To Do, blue In Progress, green Done.
+ */
+:root {
+	--ads-text: #172b4d;
+	--ads-text-subtle: #44546f;
+	--ads-text-subtlest: #626f86;
+	--ads-link: #0c66e4;
+	--ads-border: #091e4224;
+	--ads-border-focused: #388bff;
+	--ads-bg-neutral: #091e420f;
+	--ads-bg-neutral-hovered: #091e4224;
+	--ads-bg-brand: #0c66e4;
+	--ads-bg-brand-hovered: #0055cc;
+	--ads-bg-selected: #e9f2ff;
+	--ads-lozenge-todo-bg: #dfe1e6;
+	--ads-lozenge-todo-text: #44546f;
+	--ads-lozenge-progress-bg: #e9f2ff;
+	--ads-lozenge-progress-text: #0055cc;
+	--ads-lozenge-done-bg: #dcfff1;
+	--ads-lozenge-done-text: #216e4e;
+	--ads-danger: #c9372c;
+	--ads-warning: #e2b203;
+	--ads-success: #22a06b;
+	--ads-discovery: #6e5dc6;
+}
+
+/* Only ever the inside of an Agility iframe: no chrome of its own, and no body margin to misalign it. */
+html,
+body {
+	margin: 0;
+	padding: 0;
+	background: transparent;
+}
+
+body {
+	font-family: "Atlassian Sans", ui-sans-serif, -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+	font-size: 14px;
+	line-height: 20px;
+	color: var(--ads-text);
+	-webkit-font-smoothing: antialiased;
+}
