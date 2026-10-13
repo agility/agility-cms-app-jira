@@ -8,7 +8,7 @@ Everything lives in resource group **`agility.apps.jira`** (Main Accelerator Cor
 | Web app | `agility-apps-jira` | Node 22, `node server.js` (Next standalone), HTTPS only, FTPS off. https://agility-apps-jira.azurewebsites.net |
 | Storage account | `agilityappsjira` | Table Storage for setups, connections, sealed tokens and links. **Shared-key access is off**: only Entra identities with a data role get in |
 | Key Vault | `agility-apps-jira-kv` | RBAC mode. Holds `WORK-TOKEN-KEY`, the AES-256-GCM key that seals provider tokens |
-| Managed identity | `id-agility-apps-jira-deploy` | GitHub Actions deploy, via OIDC. Federated credential `github-main` trusts only `repo:agility/agility-cms-app-jira:ref:refs/heads/main` |
+| Managed identity | `id-agility-apps-jira-deploy` | GitHub Actions deploy, via OIDC. Federated credential `github-main` trusts only `repo:agility@19171476/agility-cms-app-jira@1415892012:ref:refs/heads/main` (the org issues immutable, id-based subjects) |
 
 ## Who can do what
 
